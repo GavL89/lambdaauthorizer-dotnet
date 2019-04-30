@@ -1,0 +1,66 @@
+service: customauthorizer
+
+provider:
+  name: aws
+  runtime: dotnetcore2.1
+  region: ap-southeast-2
+
+  logRetentionInDays: 90
+
+  environment:
+    ApiGatewayArn:
+      Fn::Join:
+        - ""
+        - - "arn:aws:execute-api"
+          - ":"
+          - Ref: AWS::Region
+          - ":"
+          - Ref: AWS::AccountId
+          - ":"
+          - Ref: ApiGatewayRestApi
+          - "/*/*/*"
+    # Used for generating the JWT for the user into API Gateway
+    HmacSignature: "ad94f8c800e4883ff7f6aa5ec96fbea34926b6ea5960c43a20941586e3f8eeb5"
+    HmacExpiry: 10080 # Minutes, 10080 is 7 days
+
+  # you can add statements to the Lambda function's IAM Role here
+  # iamRoleStatements:
+
+# or you can add iam managed policies by their ARN
+#  iamManagedPolicies:
+#    -   - 'some:aws:arn:xxx:*:*'
+
+# custom:
+
+# you can add packaging information here
+package:
+  artifact: bin/release/netcoreapp2.1/deploy-package.zip
+#  exclude:
+#    - exclude-me.js
+#    - exclude-me-dir/**
+
+functions:
+  authorizerCheckToken:
+    handler: CsharpHandlers::Authorizer.CheckToken::FunctionHandler
+
+  authorizerAuthenticate:
+    handler: CsharpHandlers::Authorizer.Authenticate::FunctionHandler
+    events:
+      - http:
+          path: authenticate
+          method: get
+          integration: lambda
+          cors: true
+
+  hello:
+    handler: CsharpHandlers::Namespace.Handler::FunctionHandler
+    events:
+      - http:
+          path: hello
+          method: get
+          integration: lambda
+          cors: true
+          authorizer: authorizerCheckToken
+
+resources:
+  - ${file(ssm.yml)} 

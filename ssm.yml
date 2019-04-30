@@ -1,0 +1,8 @@
+Resources:
+  itemNameHere:
+    Type: "AWS::SSM::Parameter"
+    Properties: 
+      Description: "This is a short description of the parameter"
+      Name: "/${self:service}-${opt:stage, 'dev'}/ParameterNameHere"
+      Value: "The value goes here"
+      Type: "String"
